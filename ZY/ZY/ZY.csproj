@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F67C340A-8980-42EC-8DA5-DFEDF8B49FF8}</ProjectGuid>
+    <ProjectGuid>{94B77BAF-32F5-493F-8150-9C00DAB6877E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>wangz.TcpServer</RootNamespace>
-    <AssemblyName>wangz.TcpServer</AssemblyName>
+    <RootNamespace>ZY</RootNamespace>
+    <AssemblyName>ZY</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -32,8 +32,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,20 +39,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppServer.cs" />
-    <Compile Include="AppSession.cs" />
-    <Compile Include="FrmTcpServer.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FrmTcpServer.Designer.cs">
-      <DependentUpon>FrmTcpServer.cs</DependentUpon>
-    </Compile>
+    <Compile Include="SerialPortHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="FrmTcpServer.resx">
-      <DependentUpon>FrmTcpServer.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

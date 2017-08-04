@@ -48,6 +48,7 @@ namespace wangz.TcpServer
         public int LocalPort { get { return _LocalPort; } }
         #endregion
 
+        #region 构造方法
         public AppSession(Socket client, Action<string, byte[]> ReceivedDataAction, Action<string, Exception> ExceptionAction)
         {
             this.client = client;
@@ -56,13 +57,13 @@ namespace wangz.TcpServer
 
             ScanIPE(this.client.RemoteEndPoint, out this._RemoteIp, out this._RemotePort);
             ScanIPE(this.client.LocalEndPoint, out this._LocalIp, out this._LocalPort);
-            this._ID = this._LocalIp;
+            this._ID = this.RemoteIp;
 
             this.client.BeginReceive(this.buffer, 0, this.buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), this.client);
         }
+        #endregion
 
-        
-
+        #region 公共方法
         /// <summary>
         /// 关闭连接并释放一切资源
         /// </summary>
@@ -76,6 +77,7 @@ namespace wangz.TcpServer
             catch
             { }
         }
+        #endregion
 
         #region 回调方法
         /// <summary>
@@ -99,7 +101,7 @@ namespace wangz.TcpServer
                     ExceptionAction.BeginInvoke(this.ID, new Exception(), new AsyncCallback(ExceptionCallback), ExceptionAction);
                 }
 
-                socket.BeginReceive(this.buffer, 0, this.buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), this.client);
+                //socket.BeginReceive(this.buffer, 0, this.buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), this.client);
             }
             catch (Exception e)
             {

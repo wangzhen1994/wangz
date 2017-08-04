@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using wangz.TcpServer;
 
 namespace wangz.Demo
 {
@@ -15,6 +16,12 @@ namespace wangz.Demo
         public FrmMain()
         {
             InitializeComponent();
+        }
+
+        private void btnTcpServer_Click(object sender, EventArgs e)
+        {
+            FrmTcpServer f = new FrmTcpServer();
+            f.Show();
         }
     }
 }

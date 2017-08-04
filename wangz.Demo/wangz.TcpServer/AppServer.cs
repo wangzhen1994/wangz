@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace wangz.TcpServer
 {
@@ -19,11 +17,27 @@ namespace wangz.TcpServer
         private Action<string, byte[]> ReceivedDataAction;//接到一条数据后
         private Action<string, Exception> SessionExceptionAction;//会话发生异常后
         private event Action<Exception> _ServerExceptionEvent;//服务器发生异常后
+        private event Action<string> _MessageEvent;
+        private event Action<string> _AddConnectedEvent;//
+        private event Action<string> _RemoveConnectedEvent;
 
         private Dictionary<string, AppSession> _sessions = new Dictionary<string, AppSession>();//会话字典
+        private static object obj = new object();
         #endregion
 
         #region 公共属性
+        public event Action<string> AddConnectedEvent
+        {
+            add { _AddConnectedEvent += value; }
+            remove { if (_AddConnectedEvent != null) _AddConnectedEvent -= value; }
+        }
+
+        public event Action<string> RemoveConnectedEvent
+        {
+            add { _RemoveConnectedEvent += value; }
+            remove { if (_RemoveConnectedEvent != null) _RemoveConnectedEvent -= value; }
+        }
+
         /// <summary>
         /// 服务器发生异常后
         /// </summary>
@@ -35,6 +49,21 @@ namespace wangz.TcpServer
                 if (_ServerExceptionEvent != null)
                 {
                     _ServerExceptionEvent -= value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 消息通知事件
+        /// </summary>
+        public event Action<string> MessageEvent
+        {
+            add { _MessageEvent += value; }
+            remove
+            {
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent -= value;
                 }
             }
         }
@@ -129,7 +158,15 @@ namespace wangz.TcpServer
             {
                 server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);//初始化套接字
                 server.Bind(this.localIpe);//绑定终结点
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent.BeginInvoke("绑定：" + localIpe.ToString() + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                }
                 server.Listen(0);//开始监听
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent.BeginInvoke("开始监听：" + localIpe.ToString() + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                }
             }
             catch (Exception e)
             {
@@ -141,11 +178,33 @@ namespace wangz.TcpServer
             }
 
             server.BeginAccept(new AsyncCallback(AcceptCallback), server);//开始异步接受连接
+            if (_MessageEvent != null)
+            {
+                _MessageEvent.BeginInvoke("开始等待客户端连接......" + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+            }
             return true;
         }
         #endregion
 
         #region 回调方法
+        private void AddCallBack(IAsyncResult ar)
+        {
+            Action<string> action = ar.AsyncState as Action<string>;
+            action.EndInvoke(ar);
+        }
+
+        private void RemoveCallBack(IAsyncResult ar)
+        {
+            Action<string> action = ar.AsyncState as Action<string>;
+            action.EndInvoke(ar);
+        }
+
+        private void MessageCallback(IAsyncResult ar)
+        {
+            Action<string> action = ar.AsyncState as Action<string>;
+            action.EndInvoke(ar);
+        }
+
         /// <summary>
         /// 接受连接回调方法
         /// </summary>
@@ -160,6 +219,10 @@ namespace wangz.TcpServer
                 NewSessionConnectedAction.BeginInvoke(client, new AsyncCallback(NewSessionConnectedCallback), NewSessionConnectedAction);//调用新建连接委托
 
                 socket.BeginAccept(new AsyncCallback(AcceptCallback), server);//开始异步接受连接
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent.BeginInvoke("开始等待客户端连接......" + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                }
             }
             catch (Exception e)
             {
@@ -201,10 +264,25 @@ namespace wangz.TcpServer
         {
             try
             {
-                if (this._sessions.ContainsKey(arg1))
+                lock (obj)
                 {
-                    this._sessions[arg1].Disconnect();//关闭连接
-                    this._sessions.Remove(arg1);//从字典移除
+                    if (_MessageEvent != null)
+                    {
+                        _MessageEvent.BeginInvoke("会话：" + arg1 + "异常，" + arg2.Message + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                    }
+                    if (this._sessions.ContainsKey(arg1))
+                    {
+                        this._sessions[arg1].Disconnect();//关闭连接
+                        this._sessions.Remove(arg1);//从字典移除
+                        if (_RemoveConnectedEvent != null)
+                        {
+                            _RemoveConnectedEvent.BeginInvoke(arg1, new AsyncCallback(RemoveCallBack), _RemoveConnectedEvent);
+                        }
+                        if (_MessageEvent != null)
+                        {
+                            _MessageEvent.BeginInvoke("会话：" + arg1 + "从缓存中移除" + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                        }
+                    }
                 }
             }
             catch
@@ -220,7 +298,10 @@ namespace wangz.TcpServer
         {
             try
             {
-
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent.BeginInvoke("接收到：" + arg1 + "数据，" + Encoding.ASCII.GetString(arg2) + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                }
             }
             catch
             { }
@@ -234,11 +315,28 @@ namespace wangz.TcpServer
         {
             try
             {
-
+                AppSession session = new AppSession(obj, ReceivedDataAction, SessionExceptionAction);
+                if (_sessions.ContainsKey(session.ID))
+                {
+                    _sessions[session.ID] = session;
+                }
+                else
+                {
+                    _sessions.Add(session.ID, session);
+                }
+                if (_AddConnectedEvent != null)
+                {
+                    _AddConnectedEvent.BeginInvoke(session.ID, new AsyncCallback(AddCallBack), _AddConnectedEvent);
+                }
+                if (_MessageEvent != null)
+                {
+                    _MessageEvent.BeginInvoke(session.ID + "已连接" + Environment.NewLine, new AsyncCallback(MessageCallback), _MessageEvent);
+                }
             }
             catch
             { }
         }
+
         #endregion
 
         #region 私有方法
